@@ -1,9 +1,15 @@
-import { Op, Sequelize } from "sequelize";
-import { DeleteTaskRequestData } from "../handlers/delete-task";
-import { GetFilteredTaskListRequestPathParameter } from "../handlers/get-filtered-task-list";
-import { ModifyTaskListRequestData } from "../handlers/modify-task-details";
-import TaskList, { CreateTaskListModelAttributes } from "../models/TaskList";
+import dotenv from "dotenv";
 
+import { FindOptions, Op, Sequelize } from "sequelize";
+import { GetFilteredTaskListRequestPathParameter } from "../handlers/get-filtered-task-list";
+import { SortParameter } from "../helpers/sort";
+import TaskList, {
+  CreateTaskListModelAttributes,
+  ModifyTaskListModelAttributes,
+  TaskListModelAttributes,
+} from "../models/TaskList";
+
+dotenv.config();
 export class DatabaseService {
   private connection!: Sequelize;
 
@@ -11,16 +17,13 @@ export class DatabaseService {
 
   private constructor() {
     try {
-      this.connection = new Sequelize({
-        dialect: "postgres",
-        storage: "", //! gimana caranya lupa WKKW
-      });
+      this.connection = new Sequelize(process.env.POSTGRES_CREDENTIALS!);
       this.connection.authenticate();
       this.initializeModels();
 
       console.log("DB connection success");
-    } catch {
-      console.error("DB connection failure");
+    } catch (e) {
+      console.error("DB connection failure", e);
     }
   }
 
@@ -36,6 +39,7 @@ export class DatabaseService {
     TaskList.init(TaskList.getAttributes(), {
       sequelize: this.connection,
       paranoid: true,
+      modelName: "tasklists",
     });
   }
 
@@ -45,48 +49,92 @@ export class DatabaseService {
     return TaskList.create(data);
   }
 
-  public async getTaskList(): Promise<TaskList[]> {
-    return TaskList.findAll();
+  public async getTaskList(
+    sort: SortParameter[],
+    page: number | undefined,
+    size: number | undefined
+  ): Promise<TaskList[]> {
+    let conditions: FindOptions<TaskListModelAttributes> = {
+      raw: true,
+      order: sort,
+    };
+
+    if (size !== undefined) {
+      if (page === undefined || page <= 0) page = 1;
+      conditions.offset = (page - 1) * size;
+      conditions.limit = size;
+    }
+
+    return TaskList.findAll(conditions);
   }
 
   public async getFilteredTaskList(
-    data: GetFilteredTaskListRequestPathParameter
+    data: GetFilteredTaskListRequestPathParameter,
+    sort: SortParameter[],
+    page: number | undefined,
+    size: number | undefined
   ): Promise<TaskList[]> {
-    let conditions = { limit: 10, where: {} };
+    let conditions: FindOptions<TaskListModelAttributes> = {
+      raw: true,
+      where: {},
+      order: sort,
+    };
+
+    if (size !== undefined) {
+      if (page === undefined || page <= 0) page = 1;
+      conditions.offset = (page - 1) * size;
+      conditions.limit = size;
+    }
 
     if (data.task) {
       conditions.where = {
-        task: Sequelize.where(
-          Sequelize.fn("LOWER", Sequelize.col("task")),
-          "LIKE",
-          "%" + data.task + "%"
-        ),
+        ...conditions.where,
+        task: { [Op.iLike]: `%${data.task}%` },
       };
     }
 
     if (data.listName) {
-      conditions.where = { listName: data.listName };
+      conditions.where = {
+        ...conditions.where,
+        listName: data.listName,
+      };
     }
 
     if (data.tagNames) {
-      conditions.where = { tagNames: data.tagNames };
+      conditions.where = {
+        ...conditions.where,
+        tagNames: { [Op.contains]: data.tagNames },
+      };
     }
 
     if (data.dueDate) {
-      conditions.where = { dueDate: data.dueDate };
+      conditions.where = {
+        ...conditions.where,
+        dueDate: data.dueDate,
+      };
     }
 
     if (data.startDate && data.endDate) {
       conditions.where = {
-        duedate: { [Op.between]: [data.startDate, data.endDate] },
+        ...conditions.where,
+        dueDate: {
+          [Op.between]: [data.startDate.toDate(), data.endDate.toDate()],
+        },
       };
     }
 
     if (data.startDate && !data.endDate) {
-      conditions.where = { duedate: { [Op.gte]: data.startDate } };
+      conditions.where = {
+        ...conditions.where,
+        dueDate: { [Op.gte]: data.startDate.toDate() },
+      };
     }
+
     if (!data.startDate && data.endDate) {
-      conditions.where = { duedate: { [Op.lte]: data.endDate } };
+      conditions.where = {
+        ...conditions.where,
+        dueDate: { [Op.lte]: data.endDate.toDate() },
+      };
     }
 
     return TaskList.findAll(conditions);
@@ -94,24 +142,22 @@ export class DatabaseService {
 
   public async searchTaskList(lookupValue: string): Promise<TaskList[]> {
     return TaskList.findAll({
-      limit: 10,
+      raw: true,
       where: {
-        task: Sequelize.where(
-          Sequelize.fn("LOWER", Sequelize.col("task")),
-          "LIKE",
-          "%" + lookupValue + "%"
-        ),
+        task: { [Op.iLike]: `%${lookupValue}%` },
       },
+      order: [["id", "ASC"]],
     });
   }
 
   public async modifyTask(
-    data: ModifyTaskListRequestData
-  ): Promise<[affectedCount: number]> {
-    return TaskList.update(data, { where: { id: data.id } });
+    id: number,
+    data: ModifyTaskListModelAttributes
+  ): Promise<[number, TaskList[]]> {
+    return TaskList.update(data, { where: { id } });
   }
 
-  public async deleteTask(data: DeleteTaskRequestData): Promise<number> {
-    return TaskList.destroy({ where: { id: data.id } });
+  public async deleteTask(id: number): Promise<number> {
+    return TaskList.destroy({ where: { id } });
   }
 }

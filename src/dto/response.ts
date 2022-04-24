@@ -12,7 +12,7 @@ export interface SerializableTaskListModelAttributes {
   id: number;
   task: string;
   isDone: boolean;
-  dueDate: Date | null;
+  dueDate: string | null;
   tagNames: string[] | null;
   listName: string | null;
   createdAt: string;

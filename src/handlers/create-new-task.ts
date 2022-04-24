@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import moment from "moment";
 import {
   FailResponseBody,
   NewTaskResponseData,
@@ -8,7 +9,8 @@ import { DatabaseService } from "../services/database";
 
 interface CreateNewTaskRequestBody {
   task: string;
-  dueDate: Date | null;
+  isDone: boolean;
+  dueDate: string | null;
   tagNames: string[] | null;
   listName: string | null;
 }
@@ -35,16 +37,18 @@ export default async function createNewTaskHandler(
 
   try {
     await DatabaseService.instance.insertNewTask({
-      task: req.body.task,
-      dueDate: req.body.dueDate,
-      tagNames: req.body.tagNames,
-      listName: req.body.listName,
+      ...req.body,
+      dueDate:
+        req.body.dueDate === null ? null : moment(req.body.dueDate).toDate(),
     });
     res.status(201).send({
       code: "success",
       data: {
         task: req.body.task,
-        dueDate: req.body.dueDate,
+        dueDate:
+          req.body.dueDate === null
+            ? null
+            : moment(req.body.dueDate).toString(),
         tagNames: req.body.tagNames,
         listName: req.body.listName,
       },

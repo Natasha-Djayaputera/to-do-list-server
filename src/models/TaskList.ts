@@ -1,4 +1,11 @@
-import { DataTypes, Model, ModelAttributes, Sequelize } from "sequelize";
+import moment from "moment";
+import {
+  DataTypes,
+  Model,
+  ModelAttributeColumnOptions,
+  ModelAttributes,
+  Sequelize,
+} from "sequelize";
 
 export interface TaskListModelAttributes {
   id: number;
@@ -7,16 +14,20 @@ export interface TaskListModelAttributes {
   dueDate: Date | null;
   tagNames: string[] | null;
   listName: string | null;
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
 }
 
 export type CreateTaskListModelAttributes = Pick<
   TaskListModelAttributes,
-  "task" | "dueDate" | "tagNames" | "listName"
+  "task" | "isDone" | "dueDate" | "tagNames" | "listName"
 >;
 
+export type ModifyTaskListModelAttributes = Omit<
+  TaskListModelAttributes,
+  "createdAt" | "updatedAt" | "deletedAt"
+>;
 export default class TaskList
   extends Model<TaskListModelAttributes, CreateTaskListModelAttributes>
   implements TaskListModelAttributes
@@ -27,15 +38,19 @@ export default class TaskList
   public dueDate!: Date | null;
   public tagNames!: string[] | null;
   public listName!: string | null;
-  public createdAt!: string;
-  public updatedAt!: string;
-  public deletedAt!: string | null;
+  public createdAt!: Date;
+  public updatedAt!: Date;
+  public deletedAt!: Date | null;
 
-  public getAttributes(): ModelAttributes<TaskList, TaskListModelAttributes> {
+  public static getAttributes(): ModelAttributes<
+    TaskList,
+    TaskListModelAttributes
+  > {
     return {
       id: {
         primaryKey: true,
         type: DataTypes.INTEGER,
+        autoIncrement: true,
       },
       task: {
         allowNull: false,
@@ -51,13 +66,13 @@ export default class TaskList
         allowNull: true,
         defaultValue: null,
         field: "due_date",
-        type: DataTypes.DATE,
+        type: DataTypes.DATEONLY,
       },
       tagNames: {
         allowNull: true,
         defaultValue: null,
         field: "tag_names",
-        type: DataTypes.ARRAY(DataTypes.STRING(128)),
+        type: DataTypes.ARRAY(DataTypes.TEXT),
       },
       listName: {
         allowNull: true,
@@ -67,13 +82,13 @@ export default class TaskList
       },
       createdAt: {
         allowNull: false,
-        defaultValue: Sequelize.fn("DATETIME"),
+        defaultValue: Sequelize.fn("NOW"),
         field: "created_at",
         type: DataTypes.DATE,
       },
       updatedAt: {
         allowNull: false,
-        defaultValue: Sequelize.fn("DATETIME"),
+        defaultValue: Sequelize.fn("NOW"),
         field: "updated_at",
         type: DataTypes.DATE,
       },
