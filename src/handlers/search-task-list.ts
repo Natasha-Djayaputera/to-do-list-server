@@ -1,10 +1,10 @@
-import { Request, Response } from "express";
+import { Request, Response } from 'express';
 import {
   FailResponseBody,
-  TaskListResponseData,
   SuccessResponseBody,
-} from "../dto/response";
-import { DatabaseService } from "../services/database";
+  TaskListResponseData,
+} from '../dto/response';
+import { DatabaseService } from '../services/database';
 
 export interface SearchTaskListRequestPathParameter {
   task: string;
@@ -25,11 +25,9 @@ export default async function searchTaskListHandler(
   try {
     const { task } = req.params;
 
-    console.log(task);
-
     const TaskList = await DatabaseService.instance.searchTaskList(task);
-    res.status(201).send({
-      code: "success",
+    res.status(200).send({
+      code: 'success',
       data: TaskList.map((task) => {
         let newTask: TaskListResponseData = {
           ...task,
@@ -41,9 +39,9 @@ export default async function searchTaskListHandler(
     return;
   } catch (e) {
     res.status(500).send({
-      code: "fail",
+      code: 'fail',
       error: {
-        message: e instanceof Error ? e.message : "unhandled-exception",
+        message: e instanceof Error ? e.message : 'unhandled-exception',
       },
     });
     return;

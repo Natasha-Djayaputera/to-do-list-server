@@ -1,16 +1,9 @@
-import moment from "moment";
-import {
-  DataTypes,
-  Model,
-  ModelAttributeColumnOptions,
-  ModelAttributes,
-  Sequelize,
-} from "sequelize";
+import { DataTypes, Model, ModelAttributes, Sequelize } from "sequelize";
 
 export interface TaskListModelAttributes {
   id: number;
   task: string;
-  isDone: boolean;
+  isDone: boolean | undefined;
   dueDate: Date | null;
   tagNames: string[] | null;
   listName: string | null;
@@ -28,6 +21,16 @@ export type ModifyTaskListModelAttributes = Omit<
   TaskListModelAttributes,
   "createdAt" | "updatedAt" | "deletedAt"
 >;
+
+export interface GetTaskListModelAttributes
+  extends Omit<
+    TaskListModelAttributes,
+    "id" | "task" | "isDone" | "createdAt" | "updatedAt" | "deletedAt"
+  > {
+  task?: string;
+  startDate: Date | null;
+  endDate: Date | null;
+}
 export default class TaskList
   extends Model<TaskListModelAttributes, CreateTaskListModelAttributes>
   implements TaskListModelAttributes
@@ -59,43 +62,44 @@ export default class TaskList
       },
       isDone: {
         allowNull: false,
-        field: "is_done",
+        defaultValue: false,
+        field: "isDone",
         type: DataTypes.BOOLEAN,
       },
       dueDate: {
         allowNull: true,
         defaultValue: null,
-        field: "due_date",
+        field: "dueDate",
         type: DataTypes.DATEONLY,
       },
       tagNames: {
         allowNull: true,
         defaultValue: null,
-        field: "tag_names",
+        field: "tagNames",
         type: DataTypes.ARRAY(DataTypes.TEXT),
       },
       listName: {
         allowNull: true,
         defaultValue: null,
-        field: "list_name",
+        field: "listName",
         type: DataTypes.STRING(128),
       },
       createdAt: {
         allowNull: false,
         defaultValue: Sequelize.fn("NOW"),
-        field: "created_at",
+        field: "createdAt",
         type: DataTypes.DATE,
       },
       updatedAt: {
         allowNull: false,
         defaultValue: Sequelize.fn("NOW"),
-        field: "updated_at",
+        field: "updatedAt",
         type: DataTypes.DATE,
       },
       deletedAt: {
         allowNull: true,
         defaultValue: null,
-        field: "deleted_at",
+        field: "deletedAt",
         type: DataTypes.DATE,
       },
     };

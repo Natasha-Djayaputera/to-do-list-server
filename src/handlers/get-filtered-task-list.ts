@@ -1,20 +1,27 @@
-import { Request, Response } from "express";
-import moment from "moment";
+import { Request, Response } from 'express';
 import {
   FailResponseBody,
-  TaskListResponseData,
   SuccessResponseBody,
-} from "../dto/response";
-import sortQueryHelper, { SortParameter } from "../helpers/sort";
-import { DatabaseService } from "../services/database";
+  TaskListResponseData,
+} from '../dto/response';
+import getDate from '../helpers/date';
+import getListName from '../helpers/list';
+import setPagination from '../helpers/pagination';
+import sortQueryHelper, { SortParameter } from '../helpers/sort';
+import getTagNames from '../helpers/tags';
+import { GetTaskListModelAttributes } from '../models/TaskList';
+import { DatabaseService } from '../services/database';
 
 export interface GetFilteredTaskListRequestPathParameter {
   task?: string;
-  dueDate?: moment.Moment;
-  startDate?: moment.Moment;
-  endDate?: moment.Moment;
+  dueDate?: string;
+  startDate?: string;
+  endDate?: string;
   tagNames?: string[];
   listName?: string;
+  sort?: SortParameter[];
+  page?: number;
+  size?: number;
 }
 
 type GetFilteredTaskListResponseBody =
@@ -31,41 +38,25 @@ export default async function getFilteredTaskListHandler(
 ) {
   try {
     const sort: SortParameter[] = sortQueryHelper(req.query.sort);
-    const page = Number.isNaN(Number(req.query.page))
-      ? undefined
-      : Number(req.query.page);
-    const size = Number.isNaN(Number(req.query.size))
-      ? undefined
-      : Number(req.query.size);
+    const { offset, limit } = setPagination(req.query.page, req.query.size);
 
-    const dueDate = moment(`${req.query.dueDate}`);
-    const startDate = moment(`${req.query.startDate}`);
-    const endDate = moment(`${req.query.endDate}`);
-    const tagNames = Array.isArray(req.query.tagNames)
-      ? req.query.tagNames
-      : [req.query.tagNames];
-    const filteredTagNames = tagNames.filter(
-      (t): t is string => typeof t === "string"
-    );
-
-    const data: GetFilteredTaskListRequestPathParameter = {
-      task: typeof req.query.task === "string" ? req.query.task : undefined,
-      dueDate: dueDate.isValid() ? dueDate : undefined,
-      startDate: startDate.isValid() ? startDate : undefined,
-      endDate: endDate.isValid() ? endDate : undefined,
-      tagNames: filteredTagNames.length > 0 ? filteredTagNames : undefined,
-      listName:
-        typeof req.query.listName === "string" ? req.query.listName : undefined,
+    const data: GetTaskListModelAttributes = {
+      task: typeof req.query.task === 'string' ? req.query.task : undefined,
+      dueDate: getDate(req.query.dueDate),
+      startDate: getDate(req.query.startDate),
+      endDate: getDate(req.query.endDate),
+      tagNames: getTagNames(req.query.tagNames),
+      listName: getListName(req.query.listName),
     };
 
     const TaskList = await DatabaseService.instance.getFilteredTaskList(
       data,
       sort,
-      page,
-      size
+      offset,
+      limit
     );
-    res.status(201).send({
-      code: "success",
+    res.status(200).send({
+      code: 'success',
       data: TaskList.map((task) => {
         let newTask: TaskListResponseData = {
           ...task,
@@ -77,9 +68,9 @@ export default async function getFilteredTaskListHandler(
     return;
   } catch (e) {
     res.status(500).send({
-      code: "fail",
+      code: 'fail',
       error: {
-        message: e instanceof Error ? e.message : "unhandled-exception",
+        message: e instanceof Error ? e.message : 'unhandled-exception',
       },
     });
     return;

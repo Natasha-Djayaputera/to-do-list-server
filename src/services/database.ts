@@ -1,15 +1,14 @@
-import dotenv from "dotenv";
-
-import { FindOptions, Op, Sequelize } from "sequelize";
-import { GetFilteredTaskListRequestPathParameter } from "../handlers/get-filtered-task-list";
-import { SortParameter } from "../helpers/sort";
+import { FindOptions, Op, QueryTypes, Sequelize } from 'sequelize';
+import { Tags } from '../handlers/get-all-tag-names';
+import { RenameListRequestBody } from '../handlers/rename-list';
+import { SortParameter } from '../helpers/sort';
 import TaskList, {
   CreateTaskListModelAttributes,
+  GetTaskListModelAttributes,
   ModifyTaskListModelAttributes,
   TaskListModelAttributes,
-} from "../models/TaskList";
+} from '../models/TaskList';
 
-dotenv.config();
 export class DatabaseService {
   private connection!: Sequelize;
 
@@ -21,9 +20,9 @@ export class DatabaseService {
       this.connection.authenticate();
       this.initializeModels();
 
-      console.log("DB connection success");
+      console.log('DB connection success');
     } catch (e) {
-      console.error("DB connection failure", e);
+      console.error('DB connection failure', e);
     }
   }
 
@@ -39,52 +38,44 @@ export class DatabaseService {
     TaskList.init(TaskList.getAttributes(), {
       sequelize: this.connection,
       paranoid: true,
-      modelName: "tasklists",
+      modelName: 'tasklists',
     });
   }
 
   public async insertNewTask(
     data: CreateTaskListModelAttributes
-  ): Promise<TaskList> {
-    return TaskList.create(data);
+  ): Promise<TaskListModelAttributes> {
+    return (await TaskList.create(data)).get({ plain: true });
   }
 
   public async getTaskList(
     sort: SortParameter[],
-    page: number | undefined,
-    size: number | undefined
+    offset: number,
+    limit: number | undefined
   ): Promise<TaskList[]> {
     let conditions: FindOptions<TaskListModelAttributes> = {
       raw: true,
       order: sort,
+      offset: offset,
+      limit: limit,
     };
-
-    if (size !== undefined) {
-      if (page === undefined || page <= 0) page = 1;
-      conditions.offset = (page - 1) * size;
-      conditions.limit = size;
-    }
 
     return TaskList.findAll(conditions);
   }
 
   public async getFilteredTaskList(
-    data: GetFilteredTaskListRequestPathParameter,
+    data: GetTaskListModelAttributes,
     sort: SortParameter[],
-    page: number | undefined,
-    size: number | undefined
+    offset: number,
+    limit: number | undefined
   ): Promise<TaskList[]> {
     let conditions: FindOptions<TaskListModelAttributes> = {
       raw: true,
       where: {},
       order: sort,
+      offset: offset,
+      limit: limit,
     };
-
-    if (size !== undefined) {
-      if (page === undefined || page <= 0) page = 1;
-      conditions.offset = (page - 1) * size;
-      conditions.limit = size;
-    }
 
     if (data.task) {
       conditions.where = {
@@ -118,7 +109,7 @@ export class DatabaseService {
       conditions.where = {
         ...conditions.where,
         dueDate: {
-          [Op.between]: [data.startDate.toDate(), data.endDate.toDate()],
+          [Op.between]: [data.startDate, data.endDate],
         },
       };
     }
@@ -126,14 +117,14 @@ export class DatabaseService {
     if (data.startDate && !data.endDate) {
       conditions.where = {
         ...conditions.where,
-        dueDate: { [Op.gte]: data.startDate.toDate() },
+        dueDate: { [Op.gte]: data.startDate },
       };
     }
 
     if (!data.startDate && data.endDate) {
       conditions.where = {
         ...conditions.where,
-        dueDate: { [Op.lte]: data.endDate.toDate() },
+        dueDate: { [Op.lte]: data.endDate },
       };
     }
 
@@ -146,7 +137,7 @@ export class DatabaseService {
       where: {
         task: { [Op.iLike]: `%${lookupValue}%` },
       },
-      order: [["id", "ASC"]],
+      order: [['id', 'ASC']],
     });
   }
 
@@ -159,5 +150,37 @@ export class DatabaseService {
 
   public async deleteTask(id: number): Promise<number> {
     return TaskList.destroy({ where: { id } });
+  }
+
+  public async renameList(listName: string, data: RenameListRequestBody) {
+    return TaskList.update(data, { where: { listName } });
+  }
+
+  public async deleteList(listName: string): Promise<number> {
+    return TaskList.destroy({ where: { listName } });
+  }
+
+  public async findAllTags(): Promise<Tags[]> {
+    return await TaskList.sequelize!.query(
+      'SELECT ARRAY(SELECT DISTINCT UNNEST("tagNames") FROM tasklists ORDER BY 1 ASC) AS tags;',
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+  }
+
+  public async deleteTag(tagNames: string[]): Promise<string> {
+    await TaskList.sequelize!.query(
+      'UPDATE tasklists SET "tagNames" = array_remove("tagNames", :tagNames);',
+      {
+        replacements: { tagNames },
+        type: QueryTypes.UPDATE,
+      }
+    );
+
+    await TaskList.sequelize!.query(
+      'UPDATE tasklists SET "tagNames" = NULLIF("tagNames", \'{}\');'
+    );
+    return `tag-'${tagNames}'-deleted`;
   }
 }

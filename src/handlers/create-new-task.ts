@@ -1,18 +1,26 @@
-import { Request, Response } from "express";
-import moment from "moment";
+import { Request, Response } from 'express';
 import {
   FailResponseBody,
   NewTaskResponseData,
   SuccessResponseBody,
-} from "../dto/response";
-import { DatabaseService } from "../services/database";
+} from '../dto/response';
+import getDate from '../helpers/date';
+import getListName from '../helpers/list';
+import getTagNames from '../helpers/tags';
+import {
+  isDateValid,
+  isListNameValid,
+  isTaskValid,
+} from '../helpers/validation';
+import { CreateTaskListModelAttributes } from '../models/TaskList';
+import { DatabaseService } from '../services/database';
 
-interface CreateNewTaskRequestBody {
+export interface CreateNewTaskRequestBody {
   task: string;
-  isDone: boolean;
-  dueDate: string | null;
-  tagNames: string[] | null;
-  listName: string | null;
+  isDone?: boolean;
+  dueDate?: string | null;
+  tagNames?: string | string[] | null;
+  listName?: string | null;
 }
 
 type CreateNewTaskResponseBody =
@@ -27,38 +35,30 @@ export default async function createNewTaskHandler(
   >,
   res: Response<CreateNewTaskResponseBody>
 ) {
-  if (typeof req.body.task !== "string") {
-    res.status(400).send({
-      code: "fail",
-      error: { message: "invalid-new-task" },
-    });
-    return;
-  }
+  if (!isTaskValid(req.body.task, res)) return;
+  if (!isDateValid(req.body.dueDate, res)) return;
+  if (!isListNameValid(req.body.listName, res)) return;
 
   try {
-    await DatabaseService.instance.insertNewTask({
-      ...req.body,
-      dueDate:
-        req.body.dueDate === null ? null : moment(req.body.dueDate).toDate(),
-    });
+    const data: CreateTaskListModelAttributes = {
+      task: req.body.task,
+      isDone: req.body.isDone === true ?? undefined,
+      dueDate: getDate(req.body.dueDate),
+      tagNames: getTagNames(req.body.tagNames),
+      listName: getListName(req.body.listName),
+    };
+
+    const response = await DatabaseService.instance.insertNewTask(data);
     res.status(201).send({
-      code: "success",
-      data: {
-        task: req.body.task,
-        dueDate:
-          req.body.dueDate === null
-            ? null
-            : moment(req.body.dueDate).toString(),
-        tagNames: req.body.tagNames,
-        listName: req.body.listName,
-      },
+      code: 'success',
+      data: { ...response, dueDate: response.dueDate?.toString() ?? null },
     });
     return;
   } catch (e) {
     res.status(500).send({
-      code: "fail",
+      code: 'fail',
       error: {
-        message: e instanceof Error ? e.message : "unhandled-exception",
+        message: e instanceof Error ? e.message : 'unhandled-exception',
       },
     });
     return;

@@ -1,22 +1,33 @@
-import { Request, Response } from "express";
-import moment from "moment";
+import { Request, Response } from 'express';
 import {
   FailResponseBody,
-  SuccessResponseBody,
   SerializableTaskListModelAttributes,
-} from "../dto/response";
-import { DatabaseService } from "../services/database";
+  SuccessResponseBody,
+} from '../dto/response';
+import getDate from '../helpers/date';
+import getTagNames from '../helpers/tags';
+import {
+  isDateValid,
+  isIdValid,
+  isIsDoneValid,
+  isListNameValid,
+  isTaskValid,
+} from '../helpers/validation';
+import TaskList from '../models/TaskList';
+import { DatabaseService } from '../services/database';
 
 export type ModifyTaskListRequestBody = Omit<
   SerializableTaskListModelAttributes,
-  "createdAt" | "updatedAt" | "deletedAt"
+  'createdAt' | 'updatedAt' | 'deletedAt'
 >;
 
 export interface ModifyTaskListRequestPathParameter {
   id: number;
 }
 
-type ModifyTaskListResponseBody = SuccessResponseBody<any> | FailResponseBody;
+type ModifyTaskListResponseBody =
+  | SuccessResponseBody<[number, TaskList[]]>
+  | FailResponseBody;
 
 export default async function modifyTaskDetailsHandler(
   req: Request<
@@ -26,24 +37,30 @@ export default async function modifyTaskDetailsHandler(
   >,
   res: Response<ModifyTaskListResponseBody>
 ) {
+  if (!isIdValid(req.params.id, res)) return;
+  if (!isTaskValid(req.body.task, res)) return;
+  if (!isDateValid(req.body.dueDate, res)) return;
+  if (!isListNameValid(req.body.listName, res)) return;
+  if (!isIsDoneValid(req.body.isDone, res)) return;
+
   try {
     const { id } = req.params;
     const data = {
       ...req.body,
-      dueDate:
-        req.body.dueDate === null ? null : moment(req.body.dueDate).toDate(),
+      dueDate: getDate(req.body.dueDate),
+      tagNames: getTagNames(req.body.tagNames),
     };
     const result = await DatabaseService.instance.modifyTask(id, data);
     res.status(201).send({
-      code: "success",
+      code: 'success',
       data: result,
     });
     return;
   } catch (e) {
     res.status(500).send({
-      code: "fail",
+      code: 'fail',
       error: {
-        message: e instanceof Error ? e.message : "unhandled-exception",
+        message: e instanceof Error ? e.message : 'unhandled-exception',
       },
     });
     return;

@@ -1,4 +1,4 @@
-import { ParsedQs } from "qs";
+import { Query } from "../dto/query";
 
 export type SortByParameter = "id" | "task" | "isDone" | "dueDate";
 export type OrderByParameter = "ASC" | "DESC";
@@ -19,12 +19,10 @@ function isOrderByParameter(candidate: string): candidate is OrderByParameter {
 
 const DEFAULT_SORT: SortParameter[] = [["id", "ASC"]];
 
-export default function sortQueryHelper(
-  query: string | string[] | ParsedQs | ParsedQs[] | undefined
-): SortParameter[] {
-  if (query === undefined) return DEFAULT_SORT;
+export default function sortQueryHelper(candidate: Query): SortParameter[] {
+  if (candidate === undefined) return DEFAULT_SORT;
 
-  const sortQuery = Array.isArray(query) ? query : [query];
+  const sortQuery = Array.isArray(candidate) ? candidate : [candidate];
   const sort: SortParameter[] = sortQuery
     .map((value) => {
       if (typeof value === "string" && value.includes(",")) {

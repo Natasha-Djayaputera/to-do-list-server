@@ -1,16 +1,16 @@
-import { Request, Response } from "express";
-import { request } from "http";
+import { Request, Response } from 'express';
 import {
   FailResponseBody,
-  TaskListResponseData,
   SuccessResponseBody,
-} from "../dto/response";
-import sortQueryHelper, { SortParameter } from "../helpers/sort";
-import { DatabaseService } from "../services/database";
-
-interface GetTaskListRequestBody {}
+  TaskListResponseData,
+} from '../dto/response';
+import setPagination from '../helpers/pagination';
+import sortQueryHelper, { SortParameter } from '../helpers/sort';
+import { DatabaseService } from '../services/database';
 export interface GetTaskListRequestPathParameter {
   sort?: SortParameter[];
+  page?: number;
+  size?: number;
 }
 
 type GetTaskListResponseBody =
@@ -18,29 +18,20 @@ type GetTaskListResponseBody =
   | FailResponseBody;
 
 export default async function getTaskListHandler(
-  req: Request<
-    GetTaskListRequestPathParameter,
-    GetTaskListResponseBody,
-    GetTaskListRequestBody
-  >,
+  req: Request<GetTaskListRequestPathParameter, GetTaskListResponseBody, never>,
   res: Response<GetTaskListResponseBody>
 ) {
   try {
     const sort: SortParameter[] = sortQueryHelper(req.query.sort);
-    const page = Number.isNaN(Number(req.query.page))
-      ? undefined
-      : Number(req.query.page);
-    const size = Number.isNaN(Number(req.query.size))
-      ? undefined
-      : Number(req.query.size);
+    const { offset, limit } = setPagination(req.query.page, req.query.size);
 
     const TaskList = await DatabaseService.instance.getTaskList(
       sort,
-      page,
-      size
+      offset,
+      limit
     );
-    res.status(201).send({
-      code: "success",
+    res.status(200).send({
+      code: 'success',
       data: TaskList.map((task) => {
         let newTask: TaskListResponseData = {
           ...task,
@@ -52,9 +43,9 @@ export default async function getTaskListHandler(
     return;
   } catch (e) {
     res.status(500).send({
-      code: "fail",
+      code: 'fail',
       error: {
-        message: e instanceof Error ? e.message : "unhandled-exception",
+        message: e instanceof Error ? e.message : 'unhandled-exception',
       },
     });
     return;

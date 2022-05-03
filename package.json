@@ -7,7 +7,15 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "start": "nodemon src/index.ts"
+    "start": "nodemon src/index.ts",
+    "pretest": "cross-env NODE_ENV=test sequelize-cli-ts db:seed:all --config ./config.json --seeders-path ./src/test/seeders",
+    "posttest": "cross-env NODE_ENV=test sequelize-cli-ts db:seed:undo:all --config ./config.json --seeders-path ./src/test/seeders",
+    "test:create": "cross-env NODE_ENV=test jest -i ./src/handlers/create-new-task.spec.ts --forceExit",
+    "test:gettask": "cross-env NODE_ENV=test jest -i ./src/handlers/get-task-list.spec.ts --forceExit",
+    "test:getfilteredtask": "cross-env NODE_ENV=test jest -i ./src/handlers/get-filtered-task-list.spec.ts --forceExit",
+    "test:searchtask": "cross-env NODE_ENV=test jest -i ./src/handlers/search-task-list.spec.ts --forceExit",
+    "test:modifytask": "cross-env NODE_ENV=test jest -i ./src/handlers/modify-task-details.spec.ts --forceExit",
+    "test:deletetask": "cross-env NODE_ENV=test jest -i ./src/handlers/delete-task.spec.ts --forceExit"
   },
   "dependencies": {
     "dotenv": "^16.0.0",
@@ -15,13 +23,21 @@
     "moment": "^2.29.1",
     "pg": "^8.7.3",
     "sequelize": "6.6.5",
+    "supertest": "^6.2.2",
     "ts-node": "^10.7.0",
     "typescript": "^4.6.3"
   },
   "devDependencies": {
+    "@faker-js/faker": "^6.2.0",
     "@types/express": "^4.17.13",
+    "@types/jest": "^27.4.1",
     "@types/node": "^17.0.23",
+    "@types/supertest": "^2.0.12",
+    "cross-env": "^7.0.3",
+    "jest": "^27.5.1",
     "nodemon": "^2.0.15",
-    "qs": "^6.10.3"
+    "qs": "^6.10.3",
+    "sequelize-cli-ts": "^5.5.2",
+    "ts-jest": "^27.1.4"
   }
 }
