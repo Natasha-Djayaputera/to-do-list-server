@@ -25,7 +25,7 @@ export interface ModifyTaskListRequestPathParameter {
   id: number;
 }
 
-type ModifyTaskListResponseBody =
+export type ModifyTaskListResponseBody =
   | SuccessResponseBody<[number, TaskList[]]>
   | FailResponseBody;
 

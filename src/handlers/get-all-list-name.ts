@@ -2,21 +2,21 @@ import { Request, Response } from 'express';
 import { FailResponseBody, SuccessResponseBody } from '../dto/response';
 import { DatabaseService } from '../services/database';
 
-export interface Tags {
-  tags: string[] | null;
+export interface List {
+  list: string[] | null;
 }
 
-type GetAllTagNamesResponseBody = SuccessResponseBody<Tags> | FailResponseBody;
+type GetAllListNameResponseBody = SuccessResponseBody<List> | FailResponseBody;
 
-export default async function getAllTagNamesHandler(
-  req: Request<Record<never, never>, GetAllTagNamesResponseBody, never>,
-  res: Response<GetAllTagNamesResponseBody>
+export default async function getAllListNameHandler(
+  req: Request<Record<never, never>, GetAllListNameResponseBody, never>,
+  res: Response<GetAllListNameResponseBody>
 ) {
   try {
-    const tags = await DatabaseService.instance.findAllTags();
+    const list = await DatabaseService.instance.findAllList();
     res.status(200).send({
       code: 'success',
-      data: tags[0],
+      data: list[0],
     });
     return;
   } catch (e) {

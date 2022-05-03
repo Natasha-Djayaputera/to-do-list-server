@@ -1,4 +1,5 @@
 import { FindOptions, Op, QueryTypes, Sequelize } from 'sequelize';
+import { List } from '../handlers/get-all-list-name';
 import { Tags } from '../handlers/get-all-tag-names';
 import { RenameListRequestBody } from '../handlers/rename-list';
 import { SortParameter } from '../helpers/sort';
@@ -152,6 +153,15 @@ export class DatabaseService {
     return TaskList.destroy({ where: { id } });
   }
 
+  public async findAllList(): Promise<List[]> {
+    return await TaskList.sequelize!.query(
+      'SELECT ARRAY(SELECT DISTINCT "listName" FROM tasklists WHERE "isDone" = false AND "listName" IS NOT NULL ORDER BY 1 ASC) AS list;',
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+  }
+
   public async renameList(listName: string, data: RenameListRequestBody) {
     return TaskList.update(data, { where: { listName } });
   }
@@ -162,7 +172,7 @@ export class DatabaseService {
 
   public async findAllTags(): Promise<Tags[]> {
     return await TaskList.sequelize!.query(
-      'SELECT ARRAY(SELECT DISTINCT UNNEST("tagNames") FROM tasklists ORDER BY 1 ASC) AS tags;',
+      'SELECT ARRAY(SELECT DISTINCT UNNEST("tagNames") FROM tasklists WHERE "isDone" = false ORDER BY 1 ASC) AS tags;',
       {
         type: QueryTypes.SELECT,
       }

@@ -1,11 +1,11 @@
 export interface FailResponseBody {
-  code: "fail";
+  code: 'fail';
   error: { message: string };
 }
 
 export interface SuccessResponseBody<T> {
-  code: "success";
-  data: T | T[];
+  code: 'success';
+  data: T;
 }
 
 export interface SerializableTaskListModelAttributes {
@@ -22,10 +22,10 @@ export interface SerializableTaskListModelAttributes {
 
 export type NewTaskResponseData = Pick<
   SerializableTaskListModelAttributes,
-  "task" | "dueDate" | "tagNames" | "listName"
+  'task' | 'dueDate' | 'tagNames' | 'listName'
 >;
 
 export type TaskListResponseData = Omit<
   SerializableTaskListModelAttributes,
-  "createdAt" | "updatedAt" | "deletedAt"
+  'createdAt' | 'updatedAt' | 'deletedAt'
 >;

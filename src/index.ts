@@ -5,6 +5,7 @@ import createNewTaskHandler from './handlers/create-new-task';
 import deleteListNameHandler from './handlers/delete-list';
 import deleteTagNamesHandler from './handlers/delete-tag';
 import deleteTaskHandler from './handlers/delete-task';
+import getAllListNameHandler from './handlers/get-all-list-name';
 import getAllTagNamesHandler from './handlers/get-all-tag-names';
 import getFilteredTaskListHandler from './handlers/get-filtered-task-list';
 import getTaskListHandler from './handlers/get-task-list';
@@ -45,6 +46,8 @@ app.patch('/tasks/:id', modifyTaskDetailsHandler);
 app.delete('/tasks/:id', deleteTaskHandler);
 
 //* ListName
+app.get('/listName', getAllListNameHandler);
+
 app.patch('/listName/:listName', renameListNameHandler);
 
 app.delete('/listName/:listName', deleteListNameHandler);

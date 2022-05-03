@@ -7,7 +7,9 @@ export interface DeleteTaskRequestPathParameter {
   id: number;
 }
 
-type DeleteTaskResponseBody = SuccessResponseBody<any> | FailResponseBody;
+type DeleteTaskResponseBody =
+  | SuccessResponseBody<{ message: string }>
+  | FailResponseBody;
 
 export default async function deleteTaskHandler(
   req: Request<DeleteTaskRequestPathParameter, DeleteTaskResponseBody, never>,

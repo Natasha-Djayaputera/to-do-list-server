@@ -1,6 +1,6 @@
 const { faker } = require('@faker-js/faker');
 
-const TAGS = ['work', 'life', 'balance'];
+const TAGS = ['work', 'life', 'balance', undefined];
 
 const LIST_NAMES = ['programming', 'dentistry', 'grocery', undefined];
 
@@ -19,7 +19,7 @@ module.exports = {
         i % 4 === 0
           ? undefined
           : Array.from({ length: Math.floor(Math.random() * 2 + 1) }).map(
-              () => TAGS[Math.floor(Math.random() * 2)]
+              () => TAGS[Math.floor(Math.random() * 3)]
             ),
       listName:
         i % 5 === 0 ? LIST_NAMES[Math.floor(3 * Math.random())] : undefined,

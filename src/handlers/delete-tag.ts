@@ -7,7 +7,9 @@ export interface DeleteTagNamesRequestPathParameter {
   tagNames: string;
 }
 
-type DeleteTagNamesResponseBody = SuccessResponseBody<any> | FailResponseBody;
+type DeleteTagNamesResponseBody =
+  | SuccessResponseBody<{ message: string }>
+  | FailResponseBody;
 
 export default async function deleteTagNamesHandler(
   req: Request<
@@ -32,7 +34,7 @@ export default async function deleteTagNamesHandler(
       const response = await DatabaseService.instance.deleteTag([tagNames]);
       res.status(200).send({
         code: 'success',
-        data: response,
+        data: { message: response },
       });
     } else {
       res.status(404).send({
